@@ -1,0 +1,16 @@
+{
+  "bobril": {
+    "title": "miniDLNA dashboard",
+    "tsconfigUpdate": true,
+    "compilerOptions": {
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "noImplicitReturns": true,
+      "noFallthroughCasesInSwitch": true,
+      "strict": true
+    }
+  },
+  "dependencies": {
+    "bobril": "^14.0.1"
+  }
+}
