@@ -1,5 +1,6 @@
 import * as b from "bobril";
 import { IDir, IFile } from "./data";
+import { first, isDefined } from "./util";
 
 const ico = {
   play: b.asset("ico\\youtube.svg"),
@@ -34,16 +35,23 @@ function DirTile(p: { dir: IDir }) {
         backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
       }}
     >
-      <div style={{ float: "right" }}>
-        <div>
-          <Icon src={ico.eye} /> {stats.seen}
-        </div>
-        <div>
-          <Icon src={ico.play} /> {stats.unseenPrepared}
-        </div>
-        <div>
-          <Icon src={ico.download} /> {stats.unseenUnprepared}
-        </div>
+      <div
+        style={{
+          float: "right",
+          display: "grid",
+          gridTemplateColumns: "auto auto auto",
+          gridColumnGap: 5
+        }}
+      >
+        <Icon src={ico.eye} />
+        <div>{stats.seen.length}</div>
+        <div>{stats.seen.last}</div>
+        <Icon src={ico.play} />
+        <div>{stats.unseenPrepared.length}</div>
+        <div>{stats.unseenPrepared.last}</div>
+        <Icon src={ico.download} />
+        <div>{stats.unseenUnprepared.length}</div>
+        <div>{stats.unseenUnprepared.last}</div>
       </div>
       <div>{d.dirname}</div>
       <div style={{ clear: "both" }}></div>
@@ -55,23 +63,48 @@ function Icon(p: { src: string }) {
   return <img width={14} height={14} src={p.src} />;
 }
 
+interface IGroupStats {
+  length: number;
+  last: string | null;
+}
+
 interface IDirStats {
-  seen: number;
-  unseenPrepared: number;
-  unseenUnprepared: number;
+  seen: IGroupStats;
+  unseenPrepared: IGroupStats;
+  unseenUnprepared: IGroupStats;
 }
 
 function getDirStats(files: IFile[]): IDirStats {
   const shouldHaveSubtitles = files.filter(f => f.subtitles).length > 0;
+  const seen = files.filter(f => f.seen);
+  const unseenPrepared = files.filter(
+    f => !f.seen && (!shouldHaveSubtitles || f.subtitles)
+  );
+  const unseenUnprepared = files.filter(
+    f => !f.seen && shouldHaveSubtitles && !f.subtitles
+  );
   return {
-    seen: files.filter(f => f.seen).length,
-    unseenPrepared: files.filter(
-      f => !f.seen && (!shouldHaveSubtitles || f.subtitles)
-    ).length,
-    unseenUnprepared: files.filter(
-      f => !f.seen && shouldHaveSubtitles && !f.subtitles
-    ).length
+    seen: getGroupStats(seen),
+    unseenPrepared: getGroupStats(unseenPrepared),
+    unseenUnprepared: getGroupStats(unseenUnprepared)
   };
+}
+
+function getGroupStats(files: IFile[]): IGroupStats {
+  const episodes = files.map(f => getEpisode(f.filename)).filter(isDefined);
+  episodes.sort();
+  return {
+    length: files.length,
+    last: first(episodes)
+  };
+}
+
+function getEpisode(fileName: string): string | null {
+  const res =
+    /S\d\dE\d\d/i.exec(fileName) ||
+    /S\d\d[ .]/i.exec(fileName) ||
+    /\d\dx\d\d/i.exec(fileName);
+  return res === null ? null : res[0];
 }
 
 enum DirState {
@@ -82,9 +115,9 @@ enum DirState {
 }
 
 function getDirState(stats: IDirStats): DirState {
-  if (!stats.seen) return DirState.notStarted;
-  if (stats.unseenPrepared) return DirState.prepared;
-  if (stats.unseenUnprepared) return DirState.waitingForSubtitles;
+  if (stats.seen.length == 0) return DirState.notStarted;
+  if (stats.unseenPrepared.length > 0) return DirState.prepared;
+  if (stats.unseenUnprepared.length > 0) return DirState.waitingForSubtitles;
   return DirState.seen;
 }
 
