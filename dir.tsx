@@ -1,5 +1,5 @@
 import * as b from "bobril";
-import { IDir, IFile } from "./data";
+import { IDir, IFile } from "./data/data";
 import { first, isDefined } from "./util";
 
 const ico = {

@@ -1,4 +1,5 @@
-import { useFetch } from "./http";
+import { useFetch } from "../http";
+import { asset } from "bobril";
 
 export interface IDir {
   dirname: string;
@@ -11,6 +12,7 @@ export interface IFile {
   seen: boolean;
 }
 
+const listFiles = asset("listFiles.py");
 export function useFetchMyData() {
-  return useFetch<IDir[]>("http://192.168.1.1/cgi-bin/cust/test.py");
+  return useFetch<IDir[]>(listFiles);
 }

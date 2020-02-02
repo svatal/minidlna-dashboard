@@ -1,5 +1,5 @@
 import * as b from "bobril";
-import { useFetchMyData } from "./data";
+import { useFetchMyData } from "./data/data";
 import { Dirs } from "./dir";
 
 export function App() {
