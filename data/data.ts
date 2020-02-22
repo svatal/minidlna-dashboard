@@ -1,4 +1,4 @@
-import { useFetch } from "../http";
+import { useFetch, useCommand } from "../http";
 import { asset } from "bobril";
 
 export interface IDir {
@@ -15,4 +15,15 @@ export interface IFile {
 const listFiles = asset("listFiles.py");
 export function useFetchMyData() {
   return useFetch<IDir[]>(listFiles);
+}
+
+const markAsSeen = asset("markAsSeen.py");
+export function useMarkAsSeen() {
+  const { loading, error, issue } = useCommand();
+  return {
+    loading,
+    error,
+    issue: (filePath: string, onSuccess: () => void) =>
+      issue(`${markAsSeen}?path=${filePath}`, onSuccess)
+  };
 }

@@ -1,5 +1,8 @@
 import os
 import json
+# import cgitb
+
+# cgitb.enable()
 
 print("Content-Type: application/json")
 print("Access-Control-Allow-Origin: *")
@@ -37,21 +40,21 @@ def getFiles(dirPath):
         name = parts[0]
         if not dic.has_key(name):
             dic[name] = {
-                "movie": False,
+                "extension": False,
                 "subtitles": False,
                 "seen": False
             }
         if ext in [".mov", ".mp4", ".avi", ".mkv", ".m4v", ".xvid", ".divx", ".wmv", ".mpg", ".mpeg"]:
-            dic[name]["movie"] = True
+            dic[name]["extension"] = ext
         elif ext in [".srt", ".sub"]:
             dic[name]["subtitles"] = True
         elif ext == ".jpg":
             dic[name]["seen"] = True
 
     result = map(
-        eraseMovieKeyFromDict,
+        eraseExtensionKeyFromDict,
         filter(
-            lambda i: i["movie"],
+            lambda i: i["extension"],
             map(appendFilename, dic.items())
         )
     )
@@ -59,8 +62,9 @@ def getFiles(dirPath):
     return result
 
 
-def eraseMovieKeyFromDict(obj):
-    del obj["movie"]
+def eraseExtensionKeyFromDict(obj):
+    obj["filename"] += obj["extension"]
+    del obj["extension"]
     return obj
 
 

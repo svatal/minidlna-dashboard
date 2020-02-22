@@ -1,5 +1,5 @@
 import * as b from "bobril";
-import { IDir, IFile } from "./data/data";
+import { IDir, IFile, useMarkAsSeen } from "./data/data";
 import { first, isDefined } from "./util";
 
 const ico = {
@@ -7,65 +7,193 @@ const ico = {
   eye: b.asset("ico\\eye.svg"),
   download: b.asset("ico\\download.svg")
 };
+const innerTilePadding = 10;
 
-export function Dirs(p: { dirs: IDir[] }) {
+export function Dirs(p: { dirs: IDir[]; reload: () => void }) {
   var data = [...p.dirs];
   sort(data);
-  return (
-    <>
-      {data.map(d => (
-        <DirTile dir={d} />
-      ))}
-    </>
-  );
-}
-
-function DirTile(p: { dir: IDir }) {
-  const d = p.dir;
-  const stats = getDirStats(d.files);
-  const state = getDirState(stats);
-  const colors = getDirColor(state);
   return (
     <div
       style={{
         margin: "10px auto",
-        maxWidth: 300,
-        padding: 10,
-        borderRadius: 15,
-        backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
+        width: 500,
+        display: "grid",
+        gridTemplateColumns: "auto max-content max-content max-content 100px",
+        gridColumnGap: 5
       }}
     >
-      <div
-        style={{
-          float: "right",
-          display: "grid",
-          gridTemplateColumns: "auto auto auto",
-          gridColumnGap: 5
-        }}
-      >
-        <Icon src={ico.eye} />
-        <div>{stats.seen.length}</div>
-        <div>{stats.seen.last}</div>
-        <Icon src={ico.play} />
-        <div>{stats.unseenPrepared.length}</div>
-        <div>{stats.unseenPrepared.last}</div>
-        <Icon src={ico.download} />
-        <div>{stats.unseenUnprepared.length}</div>
-        <div>{stats.unseenUnprepared.last}</div>
-      </div>
-      <div>{d.dirname}</div>
-      <div style={{ clear: "both" }}></div>
+      {data.map((d, i) => (
+        <DirTile dir={d} reload={p.reload} index={i} />
+      ))}
     </div>
   );
 }
 
-function Icon(p: { src: string }) {
-  return <img width={14} height={14} src={p.src} />;
+function DirTile({
+  dir,
+  reload,
+  index
+}: {
+  dir: IDir;
+  reload: () => void;
+  index: number;
+}) {
+  const stats = getDirStats(dir.files);
+  const state = getDirState(stats);
+  const colors = getDirColor(state);
+  const row = index * 4 + 1;
+  return (
+    <>
+      <div
+        style={{
+          gridColumn: "1 / span 4",
+          gridRow: `${row} / span 3`,
+          borderRadius: 15,
+          backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
+        }}
+      ></div>
+      <div
+        style={{
+          gridColumn: "1",
+          gridRow: `${row} / span 3`,
+          padding: innerTilePadding,
+          justifySelf: "center",
+          alignSelf: "center"
+        }}
+      >
+        {dir.dirname}
+      </div>
+      <GroupStats
+        stats={stats.seen}
+        ico={ico.eye}
+        positionStyles={{ gridRow: `${row}`, paddingTop: innerTilePadding }}
+      />
+      <GroupStats
+        stats={stats.unseenPrepared}
+        ico={ico.play}
+        positionStyles={{ gridRow: `${row + 1}` }}
+      />
+      <GroupStats
+        stats={stats.unseenUnprepared}
+        ico={ico.download}
+        positionStyles={{
+          gridRow: `${row + 2}`,
+          paddingBottom: innerTilePadding
+        }}
+      />
+      <MarkAsSeenTile
+        row={row}
+        dirname={dir.dirname}
+        stats={stats}
+        reload={reload}
+        colors={colors}
+      />
+      <div style={{ gridRow: `${row + 3}`, height: 10 }} />
+    </>
+  );
+}
+
+function GroupStats({
+  stats,
+  ico,
+  positionStyles
+}: {
+  stats: IGroupStats;
+  ico: string;
+  positionStyles: b.IBobrilStyle;
+}) {
+  return (
+    <>
+      <Icon
+        src={ico}
+        style={[
+          positionStyles,
+          {
+            gridColumn: "2"
+          }
+        ]}
+      />
+      <div
+        style={[
+          positionStyles,
+          {
+            gridColumn: "3"
+          }
+        ]}
+      >
+        {stats.length}
+      </div>
+      <div
+        style={[
+          positionStyles,
+          {
+            gridColumn: "4",
+            paddingRight: innerTilePadding
+          }
+        ]}
+      >
+        {stats.first?.episode}
+      </div>
+    </>
+  );
+}
+
+const iconSize = 18;
+function Icon(p: { src: string; style: b.IBobrilStyles }) {
+  return <img width={iconSize} height={iconSize} src={p.src} style={p.style} />;
+}
+
+function MarkAsSeenTile({
+  dirname,
+  stats,
+  reload,
+  row,
+  colors
+}: {
+  dirname: string;
+  stats: IDirStats;
+  reload: () => void;
+  row: number;
+  colors: [string, string];
+}) {
+  const { loading, error, issue } = useMarkAsSeen();
+  const positionStyle: b.IBobrilStyle = {
+    gridRow: `${row} / span 3`,
+    gridColumn: "5",
+    padding: innerTilePadding,
+    borderRadius: 15
+  };
+  const coloredStyle: b.IBobrilStyles = [
+    positionStyle,
+    {
+      backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
+    }
+  ];
+  if (stats.unseenPrepared.length === 0 && stats.unseenUnprepared.length === 0)
+    return <div style={positionStyle} />;
+  if (loading) return <div style={positionStyle}>loading</div>;
+  if (error) return <div style={positionStyle}>{error}</div>;
+  const toBeSeen = stats.unseenPrepared.first || stats.unseenUnprepared.first!;
+  return (
+    <div
+      style={[coloredStyle, { cursor: "pointer", textAlign: "center" }]}
+      onClick={() => {
+        issue(`${dirname}/${toBeSeen.filename}`, reload);
+        return true;
+      }}
+    >
+      Mark
+      <br />
+      {toBeSeen.episode}
+      <br />
+      as seen
+    </div>
+  );
 }
 
 interface IGroupStats {
   length: number;
-  last: string | null;
+  first: { filename: string; episode: string } | null;
 }
 
 interface IDirStats {
@@ -91,11 +219,13 @@ function getDirStats(files: IFile[]): IDirStats {
 }
 
 function getGroupStats(files: IFile[]): IGroupStats {
-  const episodes = files.map(f => getEpisode(f.filename)).filter(isDefined);
-  episodes.sort();
+  const episodes = files
+    .map(f => ({ filename: f.filename, episode: getEpisode(f.filename)! }))
+    .filter(f => isDefined(f.episode));
+  episodes.sort((a, b) => a.episode.localeCompare(b.episode));
   return {
     length: files.length,
-    last: first(episodes)
+    first: first(episodes)
   };
 }
 
@@ -103,7 +233,8 @@ function getEpisode(fileName: string): string | null {
   const res =
     /S\d\dE\d\d/i.exec(fileName) ||
     /S\d\d[ .]/i.exec(fileName) ||
-    /\d\dx\d\d/i.exec(fileName);
+    /\d\dx\d\d/i.exec(fileName) ||
+    /\d+/.exec(fileName);
   return res === null ? null : res[0];
 }
 

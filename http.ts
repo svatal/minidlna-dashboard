@@ -2,26 +2,66 @@ import { useState, useEffect } from "bobril";
 
 export function useFetch<TData>(
   url: string
-): { loading: boolean; error: any; data: TData | undefined } {
+): {
+  loading: boolean;
+  error: any;
+  data: TData | undefined;
+  reload: () => void;
+} {
   const loading = useState(true);
   const error = useState<any>(undefined);
   const data = useState<TData | undefined>(undefined);
+  async function fetchData() {
+    loading(true);
+    try {
+      const response = await fetch(url);
+      const d = await response.json();
+      data(d as TData);
+      loading(false);
+    } catch (e) {
+      error(e);
+      loading(false);
+    }
+  }
   useEffect(() => {
-    (async () => {
-      try {
-        const response = await fetch(url);
-        const d = await response.json();
-        data(d as TData);
-        loading(false);
-      } catch (e) {
-        error(e);
-        loading(false);
-      }
-    })();
+    fetchData();
   }, []);
   return {
     loading: loading(),
     error: error(),
-    data: data()
+    data: data(),
+    reload: fetchData
+  };
+}
+
+export function useCommand(): {
+  loading: boolean;
+  error: any;
+  issue: (url: string, onSuccess: () => void) => void;
+} {
+  const loading = useState(false);
+  const error = useState<any>(undefined);
+  return {
+    loading: loading(),
+    error: error(),
+    issue: (url: string, onSuccess: () => void = () => {}) => {
+      (async () => {
+        loading(true);
+        try {
+          const response = await fetch(url);
+          const d = (await response.text()).trim();
+          if (d === "ok") {
+            error(undefined);
+            onSuccess();
+          } else {
+            error(d);
+          }
+          loading(false);
+        } catch (e) {
+          error(e);
+          loading(false);
+        }
+      })();
+    }
   };
 }
