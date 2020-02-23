@@ -1,6 +1,7 @@
 import * as b from "bobril";
 import { IDir, IFile, useMarkAsSeen } from "./data/data";
 import { first, isDefined } from "./util";
+import { DeepReadonly } from "ts-essentials";
 
 const ico = {
   play: b.asset("ico\\youtube.svg"),
@@ -9,7 +10,7 @@ const ico = {
 };
 const innerTilePadding = 10;
 
-export function Dirs(p: { dirs: IDir[]; reload: () => void }) {
+export function Dirs(p: { dirs: DeepReadonly<IDir[]>; reload: () => void }) {
   var data = [...p.dirs];
   sort(data);
   return (
@@ -34,7 +35,7 @@ function DirTile({
   reload,
   index
 }: {
-  dir: IDir;
+  dir: DeepReadonly<IDir>;
   reload: () => void;
   index: number;
 }) {
@@ -202,7 +203,7 @@ interface IDirStats {
   unseenUnprepared: IGroupStats;
 }
 
-function getDirStats(files: IFile[]): IDirStats {
+function getDirStats(files: DeepReadonly<IFile[]>): IDirStats {
   const shouldHaveSubtitles = files.filter(f => f.subtitles).length > 0;
   const seen = files.filter(f => f.seen);
   const unseenPrepared = files.filter(
@@ -265,7 +266,7 @@ function getDirColor(state: DirState): [string, string] {
   }
 }
 
-export function sort(array: IDir[]) {
+export function sort(array: DeepReadonly<IDir>[]) {
   array.sort((a, b) => {
     const aState = getDirState(getDirStats(a.files));
     const bState = getDirState(getDirStats(b.files));

@@ -6,3 +6,8 @@ bobril@^14.0.1:
   version "14.0.1"
   resolved "https://registry.yarnpkg.com/bobril/-/bobril-14.0.1.tgz#06e242557a8da3aaae192fe3c2bfb86f49534921"
   integrity sha512-BYWJHmI5eMdvvbMhvEO/hd9Qfd6WFgwJjs3QSWP7UDkNszNqhvqwctRQQTx6j/Zh1x/gWRPeIWPcR6jxmOsW+w==
+
+ts-essentials@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/ts-essentials/-/ts-essentials-6.0.1.tgz#5f61a1c7cc5d96969fe37e79b8815b4bed09b70f"
+  integrity sha512-BJBldHBulft8QoGUo/oj5V50hyY8e58pH60h7C0xcyzjuZUKsbT0zKq7ld7VkWFua6Hw/XHDFGrlKWbXnzb3Cg==

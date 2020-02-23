@@ -1,22 +1,23 @@
 import { useState, useEffect } from "bobril";
+import { DeepReadonly } from "ts-essentials";
 
 export function useFetch<TData>(
   url: string
 ): {
   loading: boolean;
   error: any;
-  data: TData | undefined;
+  data: DeepReadonly<TData> | undefined;
   reload: () => void;
 } {
   const loading = useState(true);
   const error = useState<any>(undefined);
-  const data = useState<TData | undefined>(undefined);
+  const data = useState<DeepReadonly<TData> | undefined>(undefined);
   async function fetchData() {
     loading(true);
     try {
       const response = await fetch(url);
       const d = await response.json();
-      data(d as TData);
+      data(d as DeepReadonly<TData>);
       loading(false);
     } catch (e) {
       error(e);
