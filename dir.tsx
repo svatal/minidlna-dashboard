@@ -1,7 +1,6 @@
 import * as b from "bobril";
-import { IDir, IFile, useMarkAsSeen } from "./data/data";
-import { first, isDefined } from "./util";
 import { DeepReadonly } from "ts-essentials";
+import { Store, IMyDir, DirState, IGroupStats } from "./model";
 
 const ico = {
   play: b.asset("ico\\youtube.svg"),
@@ -10,9 +9,8 @@ const ico = {
 };
 const innerTilePadding = 10;
 
-export function Dirs(p: { dirs: DeepReadonly<IDir[]>; reload: () => void }) {
-  var data = [...p.dirs];
-  sort(data);
+export function Dirs(p: { store: Store }) {
+  var data = p.store.getData();
   return (
     <div
       style={{
@@ -24,24 +22,14 @@ export function Dirs(p: { dirs: DeepReadonly<IDir[]>; reload: () => void }) {
       }}
     >
       {data.map((d, i) => (
-        <DirTile dir={d} reload={p.reload} index={i} />
+        <DirTile dir={d} index={i} />
       ))}
     </div>
   );
 }
 
-function DirTile({
-  dir,
-  reload,
-  index
-}: {
-  dir: DeepReadonly<IDir>;
-  reload: () => void;
-  index: number;
-}) {
-  const stats = getDirStats(dir.files);
-  const state = getDirState(stats);
-  const colors = getDirColor(state);
+function DirTile({ dir, index }: { dir: DeepReadonly<IMyDir>; index: number }) {
+  const colors = getDirColor(dir.state);
   const row = index * 4 + 1;
   return (
     <>
@@ -65,30 +53,24 @@ function DirTile({
         {dir.dirname}
       </div>
       <GroupStats
-        stats={stats.seen}
+        stats={dir.seen}
         ico={ico.eye}
         positionStyles={{ gridRow: `${row}`, paddingTop: innerTilePadding }}
       />
       <GroupStats
-        stats={stats.unseenPrepared}
+        stats={dir.unseenPrepared}
         ico={ico.play}
         positionStyles={{ gridRow: `${row + 1}` }}
       />
       <GroupStats
-        stats={stats.unseenUnprepared}
+        stats={dir.unseenUnprepared}
         ico={ico.download}
         positionStyles={{
           gridRow: `${row + 2}`,
           paddingBottom: innerTilePadding
         }}
       />
-      <MarkAsSeenTile
-        row={row}
-        dirname={dir.dirname}
-        stats={stats}
-        reload={reload}
-        colors={colors}
-      />
+      <MarkAsSeenTile row={row} dir={dir} colors={colors} />
       <div style={{ gridRow: `${row + 3}`, height: 10 }} />
     </>
   );
@@ -145,19 +127,14 @@ function Icon(p: { src: string; style: b.IBobrilStyles }) {
 }
 
 function MarkAsSeenTile({
-  dirname,
-  stats,
-  reload,
+  dir,
   row,
   colors
 }: {
-  dirname: string;
-  stats: IDirStats;
-  reload: () => void;
+  dir: IMyDir;
   row: number;
   colors: [string, string];
 }) {
-  const { loading, error, issue } = useMarkAsSeen();
   const positionStyle: b.IBobrilStyle = {
     gridRow: `${row} / span 3`,
     gridColumn: "5",
@@ -170,87 +147,25 @@ function MarkAsSeenTile({
       backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
     }
   ];
-  if (stats.unseenPrepared.length === 0 && stats.unseenUnprepared.length === 0)
-    return <div style={positionStyle} />;
-  if (loading) return <div style={positionStyle}>loading</div>;
-  if (error) return <div style={positionStyle}>{error}</div>;
-  const toBeSeen = stats.unseenPrepared.first || stats.unseenUnprepared.first!;
+  if (!dir.nextToWatch) return <div style={positionStyle} />;
+  if (dir.processing) return <div style={positionStyle}>loading</div>;
+  if (dir.processingError)
+    return <div style={positionStyle}>{dir.processingError}</div>;
   return (
     <div
       style={[coloredStyle, { cursor: "pointer", textAlign: "center" }]}
       onClick={() => {
-        issue(`${dirname}/${toBeSeen.filename}`, reload);
+        dir.setNextToWatchAsSeen();
         return true;
       }}
     >
       Mark
       <br />
-      {toBeSeen.episode}
+      {dir.nextToWatch}
       <br />
       as seen
     </div>
   );
-}
-
-interface IGroupStats {
-  length: number;
-  first: { filename: string; episode: string } | null;
-}
-
-interface IDirStats {
-  seen: IGroupStats;
-  unseenPrepared: IGroupStats;
-  unseenUnprepared: IGroupStats;
-}
-
-function getDirStats(files: DeepReadonly<IFile[]>): IDirStats {
-  const shouldHaveSubtitles = files.filter(f => f.subtitles).length > 0;
-  const seen = files.filter(f => f.seen);
-  const unseenPrepared = files.filter(
-    f => !f.seen && (!shouldHaveSubtitles || f.subtitles)
-  );
-  const unseenUnprepared = files.filter(
-    f => !f.seen && shouldHaveSubtitles && !f.subtitles
-  );
-  return {
-    seen: getGroupStats(seen),
-    unseenPrepared: getGroupStats(unseenPrepared),
-    unseenUnprepared: getGroupStats(unseenUnprepared)
-  };
-}
-
-function getGroupStats(files: IFile[]): IGroupStats {
-  const episodes = files
-    .map(f => ({ filename: f.filename, episode: getEpisode(f.filename)! }))
-    .filter(f => isDefined(f.episode));
-  episodes.sort((a, b) => a.episode.localeCompare(b.episode));
-  return {
-    length: files.length,
-    first: first(episodes)
-  };
-}
-
-function getEpisode(fileName: string): string | null {
-  const res =
-    /S\d\dE\d\d/i.exec(fileName) ||
-    /S\d\d[ .]/i.exec(fileName) ||
-    /\d\dx\d\d/i.exec(fileName) ||
-    /\d+/.exec(fileName);
-  return res === null ? null : res[0];
-}
-
-enum DirState {
-  prepared,
-  notStarted,
-  waitingForSubtitles,
-  seen
-}
-
-function getDirState(stats: IDirStats): DirState {
-  if (stats.seen.length == 0) return DirState.notStarted;
-  if (stats.unseenPrepared.length > 0) return DirState.prepared;
-  if (stats.unseenUnprepared.length > 0) return DirState.waitingForSubtitles;
-  return DirState.seen;
 }
 
 function getDirColor(state: DirState): [string, string] {
@@ -264,13 +179,4 @@ function getDirColor(state: DirState): [string, string] {
     case DirState.waitingForSubtitles:
       return ["#5eaeb8", "#028090"];
   }
-}
-
-export function sort(array: DeepReadonly<IDir>[]) {
-  array.sort((a, b) => {
-    const aState = getDirState(getDirStats(a.files));
-    const bState = getDirState(getDirStats(b.files));
-    if (aState !== bState) return aState - bState;
-    return a.dirname.localeCompare(b.dirname);
-  });
 }

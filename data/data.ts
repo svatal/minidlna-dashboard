@@ -1,5 +1,6 @@
 import { useFetch, useCommand } from "../http";
-import { asset } from "bobril";
+import { asset, useStore, useState } from "bobril";
+import { Store } from "../model";
 
 export interface IDir {
   dirname: string;
@@ -14,16 +15,29 @@ export interface IFile {
 
 const listFiles = asset("listFiles.py");
 export function useFetchMyData() {
-  return useFetch<IDir[]>(listFiles);
+  const store = useStore(() => new Store());
+  const markAsSeen = useMarkAsSeen();
+  const { loading, error } = useFetch<IDir[]>(listFiles, data =>
+    store.setData(data)
+  );
+  store.setMarkAsSeen(markAsSeen);
+
+  return { loading, error, store: store.hasData() ? store : undefined };
 }
 
 const markAsSeen = asset("markAsSeen.py");
 export function useMarkAsSeen() {
   const { loading, error, issue } = useCommand();
+  const processing = useState<string | undefined>(undefined);
   return {
     loading,
     error,
-    issue: (filePath: string, onSuccess: () => void) =>
-      issue(`${markAsSeen}?path=${filePath}`, onSuccess)
+    processing: processing(),
+    issue: (filePath: string) => {
+      processing(filePath);
+      return issue(`${markAsSeen}?path=${filePath}`, () => {
+        processing(undefined);
+      });
+    }
   };
 }

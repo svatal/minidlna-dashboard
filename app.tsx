@@ -3,10 +3,10 @@ import { useFetchMyData } from "./data/data";
 import { Dirs } from "./dir";
 
 export function App() {
-  const { data, error, loading, reload } = useFetchMyData();
-  if (!data) {
+  const { store, error, loading } = useFetchMyData();
+  if (!store) {
     if (loading) return <>"loading"</>;
     else return <>{error}</>;
   }
-  return <Dirs dirs={data} reload={reload} />;
+  return <Dirs store={store} />;
 }

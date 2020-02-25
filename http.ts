@@ -2,22 +2,21 @@ import { useState, useEffect } from "bobril";
 import { DeepReadonly } from "ts-essentials";
 
 export function useFetch<TData>(
-  url: string
+  url: string,
+  onLoaded: (data: DeepReadonly<TData>) => void
 ): {
   loading: boolean;
   error: any;
-  data: DeepReadonly<TData> | undefined;
   reload: () => void;
 } {
   const loading = useState(true);
   const error = useState<any>(undefined);
-  const data = useState<DeepReadonly<TData> | undefined>(undefined);
   async function fetchData() {
     loading(true);
     try {
       const response = await fetch(url);
       const d = await response.json();
-      data(d as DeepReadonly<TData>);
+      onLoaded(d as DeepReadonly<TData>);
       loading(false);
     } catch (e) {
       error(e);
@@ -30,7 +29,6 @@ export function useFetch<TData>(
   return {
     loading: loading(),
     error: error(),
-    data: data(),
     reload: fetchData
   };
 }
