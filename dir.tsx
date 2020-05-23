@@ -1,16 +1,15 @@
 import * as b from "bobril";
 import { DeepReadonly } from "ts-essentials";
-import { Store, IMyDir, DirState, IGroupStats } from "./model";
+import { IMyDir, DirState, IGroupStats } from "./model";
 
 const ico = {
   play: b.asset("ico\\youtube.svg"),
   eye: b.asset("ico\\eye.svg"),
-  download: b.asset("ico\\download.svg")
+  download: b.asset("ico\\download.svg"),
 };
 const innerTilePadding = 10;
 
-export function Dirs(p: { store: Store }) {
-  var data = p.store.getData();
+export function Dirs(p: { data: DeepReadonly<IMyDir[]> }) {
   return (
     <div
       style={{
@@ -18,10 +17,10 @@ export function Dirs(p: { store: Store }) {
         width: 500,
         display: "grid",
         gridTemplateColumns: "auto max-content max-content max-content 100px",
-        gridColumnGap: 5
+        gridColumnGap: 5,
       }}
     >
-      {data.map((d, i) => (
+      {p.data.map((d, i) => (
         <DirTile dir={d} index={i} />
       ))}
     </div>
@@ -38,7 +37,7 @@ function DirTile({ dir, index }: { dir: DeepReadonly<IMyDir>; index: number }) {
           gridColumn: "1 / span 4",
           gridRow: `${row} / span 3`,
           borderRadius: 15,
-          backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
+          backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`,
         }}
       ></div>
       <div
@@ -47,7 +46,7 @@ function DirTile({ dir, index }: { dir: DeepReadonly<IMyDir>; index: number }) {
           gridRow: `${row} / span 3`,
           padding: innerTilePadding,
           justifySelf: "center",
-          alignSelf: "center"
+          alignSelf: "center",
         }}
       >
         {dir.dirname}
@@ -67,7 +66,7 @@ function DirTile({ dir, index }: { dir: DeepReadonly<IMyDir>; index: number }) {
         ico={ico.download}
         positionStyles={{
           gridRow: `${row + 2}`,
-          paddingBottom: innerTilePadding
+          paddingBottom: innerTilePadding,
         }}
       />
       <MarkAsSeenTile row={row} dir={dir} colors={colors} />
@@ -79,7 +78,7 @@ function DirTile({ dir, index }: { dir: DeepReadonly<IMyDir>; index: number }) {
 function GroupStats({
   stats,
   ico,
-  positionStyles
+  positionStyles,
 }: {
   stats: IGroupStats;
   ico: string;
@@ -92,16 +91,16 @@ function GroupStats({
         style={[
           positionStyles,
           {
-            gridColumn: "2"
-          }
+            gridColumn: "2",
+          },
         ]}
       />
       <div
         style={[
           positionStyles,
           {
-            gridColumn: "3"
-          }
+            gridColumn: "3",
+          },
         ]}
       >
         {stats.length}
@@ -111,8 +110,8 @@ function GroupStats({
           positionStyles,
           {
             gridColumn: "4",
-            paddingRight: innerTilePadding
-          }
+            paddingRight: innerTilePadding,
+          },
         ]}
       >
         {stats.first?.episode}
@@ -129,7 +128,7 @@ function Icon(p: { src: string; style: b.IBobrilStyles }) {
 function MarkAsSeenTile({
   dir,
   row,
-  colors
+  colors,
 }: {
   dir: IMyDir;
   row: number;
@@ -139,13 +138,13 @@ function MarkAsSeenTile({
     gridRow: `${row} / span 3`,
     gridColumn: "5",
     padding: innerTilePadding,
-    borderRadius: 15
+    borderRadius: 15,
   };
   const coloredStyle: b.IBobrilStyles = [
     positionStyle,
     {
-      backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`
-    }
+      backgroundImage: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})`,
+    },
   ];
   if (!dir.nextToWatch) return <div style={positionStyle} />;
   if (dir.processing) return <div style={positionStyle}>loading</div>;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "bobril";
 import { DeepReadonly } from "ts-essentials";
 
-export function useFetch<TData>(
+export function useFetchWithCallback<TData>(
   url: string,
   onLoaded: (data: DeepReadonly<TData>) => void
 ): {
@@ -29,7 +29,19 @@ export function useFetch<TData>(
   return {
     loading: loading(),
     error: error(),
-    reload: fetchData
+    reload: fetchData,
+  };
+}
+
+export function useFetch<TData>(url: string) {
+  const [response, setResponse] = useState<DeepReadonly<TData> | undefined>(
+    undefined
+  );
+  return {
+    ...useFetchWithCallback<TData>(url, (data) => {
+      setResponse(data);
+    }),
+    response,
   };
 }
 
@@ -61,6 +73,6 @@ export function useCommand(): {
           loading(false);
         }
       })();
-    }
+    },
   };
 }
