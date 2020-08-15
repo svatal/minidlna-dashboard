@@ -1,4 +1,4 @@
-import { useCommand, useFetch, useFetchWithCallback } from "../http";
+import { useCommand, useFetch } from "../http";
 import { asset, useState, useStore } from "bobril";
 import { useModifiedData, transformData, Store } from "../model";
 
@@ -66,7 +66,7 @@ export function useMarkAsSeen() {
     processing: processing(),
     issue: (filePath: string) => {
       processing(filePath);
-      return issue(`${markAsSeen}?path=${filePath}`, () => {
+      return issue(`${markAsSeen}?path=${encodeURIComponent(filePath)}`, () => {
         processing(undefined);
       });
     },
